@@ -3,8 +3,6 @@ re-implementing gpt model from https://github.com/karpathy/nanoGPT/blob/master/m
 in tinygrad
 """
 
-from typing import cast
-
 from tinygrad import Tensor, nn
 from tinygrad.dtype import dtypes
 
@@ -104,31 +102,10 @@ class GPT:
 
         if targets is not None:
             logits = self.lm_head(x)
-            loss = cross_entropy(logits.view(-1, logits.size(-1)), targets.view(-1))
+            loss = logits.view(-1, logits.size(-1)).sparse_categorical_crossentropy(
+                targets.view(-1)
+            )
         else:
             logits = self.lm_head(x[:, [-1], :])
             loss = None
         return logits, loss
-
-
-def cross_entropy(
-    logits: Tensor, Y: Tensor, label_smoothing: float = 0.0
-) -> Tensor:
-    """
-    Compute the cross entropy loss between input logits and target.
-
-    NOTE: `logits` are logits and `Y` are the target labels or class probabilities.
-
-    See: https://pytorch.org/docs/stable/generated/torch.nn.functional.cross_entropy.html
-
-    ```python exec="true" source="above" session="tensor" result="python"
-    t = Tensor([[-1, 2, -3], [1, -2, 3]])
-    Y = Tensor([1, 2])
-    print(t.cross_entropy(Y).item())
-    ```
-    """
-    assert 0.0 <= label_smoothing <= 1.0, "label_smoothing must be in [0.0, 1.0]"
-    Y = Y.one_hot(num_classes=cast(int, logits.shape[1])) if Y.ndim < 2 else Y
-    Y = (1 - label_smoothing) * Y + label_smoothing / cast(int, Y.shape[1])
-    ret = -logits.log_softmax(axis=1).mul(Y).sum(axis=1)
-    return ret.mean()
