@@ -1,3 +1,5 @@
+import time
+
 import matplotlib.pyplot as plt
 import numpy as np
 from tinygrad import Tensor
@@ -6,20 +8,21 @@ from tinygrad.engine.jit import TinyJit
 from tinygrad.helpers import CI, trange
 from tinygrad.nn.optim import AdamW
 from tinygrad.nn.state import get_parameters
-from utils import save_model
 
 from model import GPT
+from utils import save_model
 
 plt.rcParams["figure.figsize"] = (16, 8)
 
 
 vocab_size = 50304  # GPT-2 vocab_size of 50257, padded up to nearest multiple of 64 for efficiency
 block_size = 256
-max_steps = 10
+max_steps = 1337
 batch_size = 32
-
 data = np.load("data/train.npy")
+
 print(f"data set has {len(data):,} tokens")
+print(f"training for {max_steps=} with {batch_size=}")
 
 
 def get_batch():
@@ -57,12 +60,14 @@ def train_step(x: Tensor, y: Tensor):
 
 with Tensor.train():
     losses, accuracies = [], []
-    x, y = get_batch()
     for i in (t := trange(max_steps, disable=CI)):
-        loss = train_step(x, y)
+        t1 = time.time()
         x, y = get_batch()
+        loss = train_step(x, y)
         losses.append(loss.numpy())
-        t.set_description(f"loss: {loss.numpy():.4f}")
+        tokens_per_second = int(block_size*batch_size / (time.time() - t1))
+        t.set_description(f"loss: {loss.numpy():.4f} {tokens_per_second=:,}")
 
 save_model(model, "model")
 plt.plot(losses)
+plt.show()
