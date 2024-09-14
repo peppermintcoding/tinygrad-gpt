@@ -109,3 +109,14 @@ class GPT:
             logits = self.lm_head(x[:, [-1], :])
             loss = None
         return logits, loss
+    
+    def generate(self, idx: Tensor, max_new_tokens: int, temperature: float = 1.0):
+        for _ in range(max_new_tokens):
+            # crop if the input gets too long
+            idx = idx if idx.size(1) <= self.block_size else idx[:, -self.block_size]
+            logits, _ = self(idx)
+            logits = logits[:, -1, :] / temperature
+            probs = logits.softmax(axis=-1)
+            idx_next = probs.multinomial(num_samples=1)
+            idx = idx.cat(idx_next, dim=1)
+        return idx

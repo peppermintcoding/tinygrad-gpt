@@ -6,6 +6,7 @@ from tinygrad.engine.jit import TinyJit
 from tinygrad.helpers import CI, trange
 from tinygrad.nn.optim import AdamW
 from tinygrad.nn.state import get_parameters
+from utils import save_model
 
 from model import GPT
 
@@ -14,11 +15,11 @@ plt.rcParams["figure.figsize"] = (16, 8)
 
 vocab_size = 50304  # GPT-2 vocab_size of 50257, padded up to nearest multiple of 64 for efficiency
 block_size = 256
-max_steps = 10_000
+max_steps = 10
 batch_size = 32
 
 data = np.load("data/train.npy")
-print(f"data set has {len(data)} tokens")
+print(f"data set has {len(data):,} tokens")
 
 
 def get_batch():
@@ -63,4 +64,5 @@ with Tensor.train():
         losses.append(loss.numpy())
         t.set_description(f"loss: {loss.numpy():.4f}")
 
+save_model(model, "model")
 plt.plot(losses)
